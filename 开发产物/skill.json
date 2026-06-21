@@ -1,0 +1,26 @@
+{
+  "name": "build-b7-lhb-monitor",
+  "version": "1.1.0",
+  "build_id": "B7",
+  "build_name": "龙虎榜监控+席位标签库",
+  "type": "monitor",
+  "description": "收盘后自动抓取 A 股龙虎榜，用席位标签库匹配营业部(北向/机构/游资/量化/普通)，生成次日关注清单。个股龙虎榜详情页按上榜原因拆分买卖营业部(一票多原因)，支持区间统计(各营业部总买/总卖/净额)，交互式 HTML 看板(tab/搜索/筛选/排序/展开详情)。席位标签库为可维护种子库，支持外部覆盖。",
+  "entrypoints": {
+    "call": "scripts/build.py:run",
+    "daily": "scripts/build.py:maintain_daily",
+    "backfill": "scripts/build.py:backfill",
+    "fetch": "scripts/build.py:fetch_lhb",
+    "range_stats": "scripts/build.py:range_stats",
+    "seat_match": "scripts/seat_tags.py:match_seat",
+    "render_markdown": "scripts/render.py:render_markdown",
+    "render_stock_detail": "scripts/render.py:render_stock_detail",
+    "render_range_stats": "scripts/render.py:render_range_stats",
+    "render_html": "scripts/render_html.py:render_html",
+    "render_range_html": "scripts/render_html.py:render_range_html"
+  },
+  "data_source": "PandaData (panda_data>=0.0.9): get_lhb_list + get_lhb_detail + get_stock_detail",
+  "production": "build-b7-lhb-monitor/生产产物/database.parquet",
+  "seat_library_override_env": "B7_SEAT_OVERRIDE",
+  "callable_by_alpha": true,
+  "dependencies": ["panda_data>=0.0.9", "pandas", "numpy", "pyarrow"]
+}
