@@ -50,9 +50,14 @@ def test_seat_tags():
     m = seat_tags.match_seat("中信证券股份有限公司上海溧阳路证券营业部")
     assert m["category"] == "游资" and m["tag"] == "中信溧阳路", m
     assert seat_tags.match_seat("华鑫证券有限责任公司上海分公司")["category"] == "量化"
-    assert seat_tags.match_seat("招商证券股份有限公司深圳福民路证券营业部")["category"] == "普通"
+    # 未在种子库的具名营业部 → 营业部（非普通），避免游资盘漏统计
+    assert seat_tags.match_seat("招商证券股份有限公司深圳福民路证券营业部")["category"] == "营业部"
+    assert seat_tags.is_hotmoney_desk("招商证券股份有限公司深圳福民路证券营业部")
+    assert not seat_tags.is_known_hotmoney("招商证券股份有限公司深圳福民路证券营业部")
     assert seat_tags.is_known_hotmoney("国盛证券有限责任公司宁波桑田路证券营业部")
-    print("✅ test_seat_tags（机构/北向/游资/量化/普通 五类）")
+    # 真正的普通（无营业部/分公司等关键词）
+    assert seat_tags.match_seat("某不明资金")["category"] == "普通"
+    print("✅ test_seat_tags（机构/北向/游资/量化/营业部/普通）")
 
 
 def test_build_pool_nets():
@@ -95,7 +100,7 @@ def test_standard_and_summary():
 def test_render():
     out = run(_fetched(), config={"names": {"600000.SH": "测试A", "300001.SZ": "测试B"}})
     md = render_markdown(out)
-    assert "次日关注清单" in md and "游资席位合集" in md and "中信溧阳路" in md
+    assert "次日关注清单" in md and "营业部合集" in md and "中信溧阳路" in md
     h = render_html(out)
     assert "<html" in h and "龙虎榜监控" in h
     print("✅ test_render（次日清单/机构合集/游资席位合集 + HTML）")

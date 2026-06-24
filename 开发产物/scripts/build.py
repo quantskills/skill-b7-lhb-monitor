@@ -297,10 +297,11 @@ def build_pool(fetched: dict, names: Optional[dict] = None) -> pd.DataFrame:
         total_buy = float(gb["b_value"].sum())
         total_sell = float(gs["s_value"].sum())
         inst_net = float(g[g["category"] == "机构"].eval("b_value - s_value").sum())
-        hot_net = float(g[g["category"] == "游资"].eval("b_value - s_value").sum())
+        # 游资盘净买 = 知名游资 + 其他具名营业部（非机构/非北向/非量化的活跃资金）
+        hot_net = float(g[g["category"].isin(seat_tags.HOTMONEY_CATS)].eval("b_value - s_value").sum())
         north_net = float(g[g["category"] == "北向"].eval("b_value - s_value").sum())
         quant_net = float(g[g["category"] == "量化"].eval("b_value - s_value").sum())
-        known = g[g["category"].isin(["游资", "量化", "机构", "北向"])]
+        famous = g[g["category"] == "游资"]                       # 种子库命中的知名游资
         known_buy_seats = sorted(set(gb[gb["category"] == "游资"]["tag"]) - {""})
         top_buy = gb.sort_values("b_value", ascending=False).head(1)
         top_buy_seat = (top_buy.iloc[0]["tag"] or top_buy.iloc[0]["agency"]) if len(top_buy) else ""
@@ -308,7 +309,8 @@ def build_pool(fetched: dict, names: Optional[dict] = None) -> pd.DataFrame:
             "ts_code": ts, "trade_date": td,
             "total_buy": total_buy, "total_sell": total_sell, "net_buy": total_buy - total_sell,
             "inst_net": inst_net, "hotmoney_net": hot_net, "north_net": north_net, "quant_net": quant_net,
-            "known_seat_cnt": int(known["agency"].nunique()),
+            "known_seat_cnt": int(famous["agency"].nunique()),   # 知名游资席位数（高亮用）
+            "desk_seat_cnt": int(g[g["category"].isin(seat_tags.HOTMONEY_CATS)]["agency"].nunique()),
             "hotmoney_seats": known_buy_seats, "top_buy_seat": top_buy_seat,
             "n_reasons": int(g["type"].nunique()),
             "buy_seats": _agg_seats(gb, "b_value"), "sell_seats": _agg_seats(gs, "s_value"),
@@ -318,7 +320,7 @@ def build_pool(fetched: dict, names: Optional[dict] = None) -> pd.DataFrame:
     if pool.empty:
         pool = keys.copy()
         for c in ["total_buy", "total_sell", "net_buy", "inst_net", "hotmoney_net", "north_net",
-                  "quant_net", "known_seat_cnt"]:
+                  "quant_net", "known_seat_cnt", "desk_seat_cnt"]:
             pool[c] = 0.0
         pool["hotmoney_seats"] = [[] for _ in range(len(pool))]
         pool["buy_seats"] = [[] for _ in range(len(pool))]
@@ -338,7 +340,7 @@ def build_pool(fetched: dict, names: Optional[dict] = None) -> pd.DataFrame:
         if c not in pool.columns:
             pool[c] = np.nan
     # outer merge 可能带来 NaN 数值列
-    for c in ["total_buy", "total_sell", "net_buy", "inst_net", "hotmoney_net", "north_net", "quant_net", "known_seat_cnt", "n_reasons"]:
+    for c in ["total_buy", "total_sell", "net_buy", "inst_net", "hotmoney_net", "north_net", "quant_net", "known_seat_cnt", "desk_seat_cnt", "n_reasons"]:
         pool[c] = _num(pool.get(c))
     for c in ["hotmoney_seats", "buy_seats", "sell_seats", "reasons"]:
         pool[c] = pool[c].apply(lambda v: v if isinstance(v, list) else [])
@@ -394,7 +396,7 @@ OUTPUT_COLS = [
     "ts_code", "name", "board_type",
     "is_watchlist", "watchlist_rank", "score", "watch_reason",
     "net_buy", "inst_net", "hotmoney_net", "north_net", "quant_net",
-    "known_seat_cnt", "n_reasons", "top_buy_seat", "type", "reason", "amount", "change_rate", "turnover",
+    "known_seat_cnt", "desk_seat_cnt", "n_reasons", "top_buy_seat", "type", "reason", "amount", "change_rate", "turnover",
     "result_value", "result_json", "data_version", "update_time",
 ]
 
@@ -449,6 +451,8 @@ def to_standard_output(pool: pd.DataFrame, data_version: str = DEFAULT_DATA_VERS
     df["is_watchlist"] = df["is_watchlist"].fillna(False).astype(bool)
     df["watchlist_rank"] = df["watchlist_rank"].fillna(0).astype(int)
     df["known_seat_cnt"] = df["known_seat_cnt"].fillna(0).astype(int)
+    df["desk_seat_cnt"] = df.get("desk_seat_cnt", 0)
+    df["desk_seat_cnt"] = df["desk_seat_cnt"].fillna(0).astype(int)
     df["result_value"] = np.where(df["is_watchlist"], "次日关注", "上榜")
 
     def _row_json(r) -> str:
@@ -459,6 +463,7 @@ def to_standard_output(pool: pd.DataFrame, data_version: str = DEFAULT_DATA_VERS
             "north_net": round(float(r["north_net"]), 0),
             "quant_net": round(float(r["quant_net"]), 0),
             "known_seat_cnt": int(r["known_seat_cnt"]),
+            "desk_seat_cnt": int(r.get("desk_seat_cnt", 0) or 0),
             "top_buy_seat": r.get("top_buy_seat", ""),
             "hotmoney_seats": r.get("hotmoney_seats", []),
             "buy_seats": r.get("buy_seats", []),

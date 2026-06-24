@@ -81,22 +81,27 @@ def _inst_table(d: pd.DataFrame) -> str:
     return "\n".join(lines)
 
 
-def _hotmoney_seat_table(d: pd.DataFrame) -> str:
-    """知名游资席位 → 当日买入标的合集。"""
-    seat_map: dict[str, list] = {}
+def _hotmoney_seat_table(d: pd.DataFrame, top: int = 25) -> str:
+    """营业部合集（游资盘）：知名游资 + 其他活跃营业部 → 当日买入标的。按出手次数排序。"""
+    seat_map: dict[str, dict] = {}
     for _, r in d.iterrows():
         for seat in r["_j"].get("buy_seats", []):
-            if seat.get("category") != "游资":
+            if seat.get("category") not in ("游资", "营业部"):
                 continue
-            tag = seat.get("tag") or seat.get("agency")
-            seat_map.setdefault(tag, []).append((r["name"], r["ts_code"], seat.get("value", 0)))
+            key = seat.get("tag") or seat.get("agency")
+            e = seat_map.setdefault(key, {"famous": seat.get("category") == "游资", "picks": []})
+            e["picks"].append((r["name"], r["ts_code"], seat.get("b", seat.get("value", 0))))
     if not seat_map:
-        return "_当日无标签库命中的知名游资席位。_"
-    lines = ["| 游资席位 | 出手次数 | 买入标的（金额） |", "|---|---:|---|"]
-    for tag, picks in sorted(seat_map.items(), key=lambda kv: -len(kv[1])):
-        picks.sort(key=lambda x: -x[2])
-        items = "，".join(f"{nm}({ts.split('.')[0]},{v/1e8:.2f}亿)" for nm, ts, v in picks[:8])
-        lines.append(f"| **{tag}** | {len(picks)} | {items} |")
+        return "_当日无营业部席位买入。_"
+    items = sorted(seat_map.items(), key=lambda kv: (-len(kv[1]["picks"]), -sum(p[2] for p in kv[1]["picks"])))
+    lines = ["| 营业部/游资席位 | 出手 | 买入标的（金额） |", "|---|---:|---|"]
+    for key, e in items[:top]:
+        picks = sorted(e["picks"], key=lambda x: -x[2])
+        label = f"**{key}**" if e["famous"] else key
+        txt = "，".join(f"{nm}({ts.split('.')[0]},{v/1e8:.2f}亿)" for nm, ts, v in picks[:6])
+        lines.append(f"| {label} | {len(picks)} | {txt} |")
+    if len(items) > top:
+        lines.append(f"| _…另 {len(items)-top} 个营业部_ | | |")
     return "\n".join(lines)
 
 
@@ -188,7 +193,7 @@ def render_markdown(panel: pd.DataFrame, date: str | None = None) -> str:
         "", f"> {_overview(d, s)}", "",
         "## 一、次日关注清单", "", _watchlist_table(d), "",
         "## 二、机构合集（机构净买）", "", _inst_table(d), "",
-        "## 三、游资席位合集", "", _hotmoney_seat_table(d), "",
+        "## 三、营业部合集（游资盘：知名游资 + 活跃营业部）", "", _hotmoney_seat_table(d), "",
         "## 四、个股席位明细（关注清单 Top）", "", _seat_detail(d), "",
         "---", "_BUILD-B7 龙虎榜监控+席位标签库 · 席位标签为可维护种子库，请持续核对_",
     ]

@@ -54,6 +54,25 @@ SEAT_LIBRARY: list[dict] = [
     {"match": "中山东路", "category": "游资", "tag": "中山东路", "note": "一线游资席位"},
     {"match": "前滩大道", "category": "游资", "tag": "上海前滩大道", "note": "一线游资席位"},
     {"match": "福州五一北路", "category": "游资", "tag": "福州五一北路", "note": "活跃席位"},
+    {"match": "拉萨金融城南环路", "category": "游资", "tag": "东财拉萨金融城南环路", "note": "东财拉萨通道"},
+    {"match": "深圳分公司", "category": "游资", "tag": "深圳系", "note": "深圳活跃通道"},
+    {"match": "广州天河北路", "category": "游资", "tag": "广州天河北路", "note": "活跃席位"},
+    {"match": "南京太平南路", "category": "游资", "tag": "南京太平南路", "note": "活跃席位"},
+    {"match": "深圳福华一路", "category": "游资", "tag": "深圳福华一路", "note": "活跃席位"},
+    {"match": "杭州解放东路", "category": "游资", "tag": "杭州解放东路", "note": "浙系活跃席位"},
+    {"match": "苏州工业园区", "category": "游资", "tag": "苏州工业园区", "note": "活跃席位"},
+    {"match": "上海浦东南路", "category": "游资", "tag": "上海浦东南路", "note": "活跃席位"},
+    {"match": "西藏东方财富", "category": "游资", "tag": "东财西藏系", "note": "东财通道"},
+    {"match": "深圳益田路荣超商务中心", "category": "游资", "tag": "华泰益田路荣超", "note": "深圳顶级游资席位"},
+    # —— 量化/程序化常见通道补充 ——
+    {"match": "中国国际金融", "category": "量化", "tag": "中金量化", "note": "量化/程序化常用通道"},
+    {"match": "中信证券股份有限公司上海分公司", "category": "量化", "tag": "中信上海分公司", "note": "量化/机构大通道"},
+    {"match": "摩根士丹利", "category": "量化", "tag": "摩根士丹利", "note": "外资量化通道"},
+    {"match": "摩根大通", "category": "量化", "tag": "摩根大通", "note": "外资量化通道"},
+    {"match": "高盛", "category": "量化", "tag": "高盛通道", "note": "外资量化通道"},
+    {"match": "瑞银", "category": "量化", "tag": "瑞银通道", "note": "外资通道"},
+    {"match": "瑞士信贷", "category": "量化", "tag": "瑞信通道", "note": "外资通道"},
+    {"match": "野村", "category": "量化", "tag": "野村通道", "note": "外资通道"},
     {"match": "成都北一环", "category": "游资", "tag": "华西成都北一环", "note": "成都系活跃席位"},
     {"match": "成都东大街", "category": "游资", "tag": "成都东大街", "note": "成都系活跃席位"},
     {"match": "成都南一环", "category": "游资", "tag": "成都南一环", "note": "成都系活跃席位"},
@@ -109,13 +128,29 @@ def match_seat(agency: Optional[str]) -> dict:
         if d["match"] in a:
             return {"category": d.get("category", "游资"), "tag": d.get("tag", d["match"]),
                     "note": d.get("note", "")}
-    # 4) 兜底
+    # 4) 其他具名券商席位 → 营业部（游资/大户活跃席位，只是未在种子库标注）。
+    #    龙虎榜能进买卖前五的营业部本身即显著资金，归"营业部"而非"普通"，避免游资盘被漏统计。
+    if any(k in a for k in BRANCH_KEYS):
+        return {"category": "营业部", "tag": "", "note": "具名营业部席位（未标注，建议补入种子库）"}
+    # 5) 兜底（无法识别的异常名）
     return {"category": "普通", "tag": "", "note": ""}
 
 
+# 具名券商席位关键词：命中即视为营业部资金（游资/大户）
+BRANCH_KEYS = ["营业部", "分公司", "证券总部", "自营"]
+
+# 游资盘口径：知名游资(种子库) + 其他具名营业部
+HOTMONEY_CATS = ["游资", "营业部"]
+
+
 def is_known_hotmoney(agency: Optional[str]) -> bool:
-    """是否为标签库命中的知名游资席位。"""
+    """是否为标签库命中的知名游资席位（不含未标注营业部）。"""
     return match_seat(agency)["category"] == "游资"
+
+
+def is_hotmoney_desk(agency: Optional[str]) -> bool:
+    """是否为游资盘席位（知名游资 + 其他具名营业部，即非机构/非北向的活跃资金）。"""
+    return match_seat(agency)["category"] in HOTMONEY_CATS
 
 
 def library_size() -> dict:
