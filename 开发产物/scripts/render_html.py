@@ -161,13 +161,14 @@ function seatTab(){{
   const m={{}};
   DATA.stocks.forEach(s=>(s.buy_seats||[]).forEach(b=>{{
     if(b.category!=="游资"&&b.category!=="营业部")return;
-    const k=b.tag||b.agency;(m[k]=m[k]||{{famous:b.category==="游资",picks:[]}}).picks.push({{n:s.name,c:s.code,v:b.b}});}}));
+    const k=b.tag||b.agency;(m[k]=m[k]||{{famous:b.category==="游资",group:b.group||"",alias:b.alias||"",picks:[]}}).picks.push({{n:s.name,c:s.code,v:b.b}});}}));
   let keys=Object.keys(m);if(q)keys=keys.filter(k=>k.includes(q)||m[k].picks.some(x=>x.n.includes(q)));
   keys.sort((a,b)=>m[b].picks.length-m[a].picks.length || m[b].picks.reduce((t,x)=>t+x.v,0)-m[a].picks.reduce((t,x)=>t+x.v,0));
   if(!keys.length)return '<div class="empty">当日无营业部席位买入。</div>';
   let h='';keys.forEach(k=>{{const e=m[k];const ps=e.picks.sort((a,b)=>b.v-a.v);
     const star=e.famous?'★ ':'';
-    h+=`<div class="ladder"><div class="lhd"><span class="bn">${{star}}${{k}}</span><span class="cnt">出手 ${{ps.length}}</span></div><div class="sc">`+
+    const meta=(e.group?`<span class="cnt"> ${{e.group}}</span>`:'')+(e.alias?`<span class="cnt"> ·${{e.alias}}</span>`:'');
+    h+=`<div class="ladder"><div class="lhd"><span class="bn">${{star}}${{k}}</span>${{meta}}<span class="cnt">出手 ${{ps.length}}</span></div><div class="sc">`+
        ps.map(x=>`<span class="x">${{x.n}}<em>${{(x.v/1e8).toFixed(2)}}亿</em></span>`).join('')+'</div></div>';}});
   return h;
 }}

@@ -60,6 +60,18 @@ def test_seat_tags():
     print("✅ test_seat_tags（机构/北向/游资/量化/营业部/普通）")
 
 
+def test_seat_library_json():
+    """席位库从 seat_library.json 加载，带 group/tier/alias，覆盖知名席位。"""
+    sz = seat_tags.library_size()
+    assert sz["seats"] >= 40 and sz["游资"] >= 30, sz
+    m = seat_tags.match_seat("国盛证券有限责任公司宁波桑田路证券营业部")
+    assert m["group"] == "宁波系" and m["tier"] == "一线", m
+    assert "alias" in m  # 本尊槽位存在（默认空，待用户填）
+    g = seat_tags.groups()
+    assert "宁波系" in g and "深圳帮" in g, g
+    print(f"✅ test_seat_library_json（{sz['seats']}席/{sz['游资']}游资，帮派 {len(g)} 类，alias 槽位就绪）")
+
+
 def test_build_pool_nets():
     pool = build_pool(validate_input(_fetched()), names={"600000.SH": "测试A", "300001.SZ": "测试B"})
     a = pool[pool["ts_code"] == "600000.SH"].iloc[0]
@@ -192,6 +204,7 @@ def test_real_data_optional():
 
 if __name__ == "__main__":
     test_seat_tags()
+    test_seat_library_json()
     test_build_pool_nets()
     test_watchlist()
     test_standard_and_summary()

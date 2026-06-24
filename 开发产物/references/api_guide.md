@@ -52,10 +52,16 @@ export PANDA_PASSWORD=<密码>              # 兼容 PANDA_DATA_PASSWORD
 匹配优先级：北向 > 机构 > 种子库(游资/量化) > 营业部 > 普通
 北向：agency 含 "沪股通专用"/"深股通专用"/...
 机构：agency 含 "机构专用"
-游资/量化：SEAT_LIBRARY 子串匹配（最长子串优先），外部 B7_SEAT_OVERRIDE 优先于内置
-营业部：种子库未命中但含 "营业部/分公司/证券总部/自营" 的具名券商席位
+游资/量化：seat_library.json 子串匹配（最长子串优先），外部 B7_SEAT_OVERRIDE 优先于内置
+营业部：库未命中但含 "营业部/分公司/证券总部/自营" 的具名券商席位
         （能进买卖前五即显著资金，归营业部而非普通，避免游资盘漏统计；实测覆盖率≈99%）
 普通：无法识别的异常名（极少）
+
+席位库数据文件 seat_library.json（独立可维护，改 JSON 即扩库，不动代码）：
+  rules: {north, inst, branch} 确定性关键词
+  seats: [{match, category, tag(俗称), group(帮派), tier(一线/二线), alias(游资本尊·默认空), note}]
+  帮派(group)：上海帮/深圳帮/宁波系/浙系/成都系/佛山系/拉萨系/温州帮/北京帮/量化通道/外资通道
+  alias 槽位留给使用方核实后填本尊名号；本库不臆造民间传闻，亦可用 B7_SEAT_OVERRIDE 临时覆盖
 
 游资盘净买 hotmoney_net = Σ(游资 + 营业部 的 b−s)   # 非机构/非北向/非量化的活跃资金
 known_seat_cnt = 知名游资席位数（高亮）; desk_seat_cnt = 游资盘席位数

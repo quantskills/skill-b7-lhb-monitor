@@ -89,19 +89,23 @@ def _hotmoney_seat_table(d: pd.DataFrame, top: int = 25) -> str:
             if seat.get("category") not in ("游资", "营业部"):
                 continue
             key = seat.get("tag") or seat.get("agency")
-            e = seat_map.setdefault(key, {"famous": seat.get("category") == "游资", "picks": []})
+            e = seat_map.setdefault(key, {"famous": seat.get("category") == "游资",
+                                          "group": seat.get("group", ""), "alias": seat.get("alias", ""),
+                                          "picks": []})
             e["picks"].append((r["name"], r["ts_code"], seat.get("b", seat.get("value", 0))))
     if not seat_map:
         return "_当日无营业部席位买入。_"
     items = sorted(seat_map.items(), key=lambda kv: (-len(kv[1]["picks"]), -sum(p[2] for p in kv[1]["picks"])))
-    lines = ["| 营业部/游资席位 | 出手 | 买入标的（金额） |", "|---|---:|---|"]
+    lines = ["| 营业部/游资席位 | 帮派 | 出手 | 买入标的（金额） |", "|---|---|---:|---|"]
     for key, e in items[:top]:
         picks = sorted(e["picks"], key=lambda x: -x[2])
-        label = f"**{key}**" if e["famous"] else key
+        name = f"{key}（{e['alias']}）" if e.get("alias") else key
+        label = f"**{name}**" if e["famous"] else name
+        grp = e.get("group", "") or ("—" if e["famous"] else "")
         txt = "，".join(f"{nm}({ts.split('.')[0]},{v/1e8:.2f}亿)" for nm, ts, v in picks[:6])
-        lines.append(f"| {label} | {len(picks)} | {txt} |")
+        lines.append(f"| {label} | {grp} | {len(picks)} | {txt} |")
     if len(items) > top:
-        lines.append(f"| _…另 {len(items)-top} 个营业部_ | | |")
+        lines.append(f"| _…另 {len(items)-top} 个营业部_ | | | |")
     return "\n".join(lines)
 
 

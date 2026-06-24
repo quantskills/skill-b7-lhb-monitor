@@ -224,27 +224,30 @@ def load_names(symbols: list[str], pd_api: Any | None = None) -> dict:
 # ============================================================
 def _tag_seats(detail: pd.DataFrame) -> pd.DataFrame:
     if detail.empty:
-        return detail.assign(category="", tag="", note="")
+        return detail.assign(category="", tag="", note="", group="", tier="", alias="")
     tags = detail["agency"].map(seat_tags.match_seat)
     detail = detail.copy()
-    detail["category"] = [t["category"] for t in tags]
-    detail["tag"] = [t["tag"] for t in tags]
-    detail["note"] = [t["note"] for t in tags]
+    for k in ["category", "tag", "note", "group", "tier", "alias"]:
+        detail[k] = [t.get(k, "") for t in tags]
     return detail
 
 
 def _seats_from(rows: pd.DataFrame, sort_col: str) -> list:
-    """把席位行转 dict 列表，每个席位带 买入(b) / 卖出(s) 两个金额 + 标签。
+    """把席位行转 dict 列表，每个席位带 买入(b) / 卖出(s) 两个金额 + 标签 + 帮派。
     value = 该侧主金额（买方表用 b，卖方表用 s），兼容旧渲染。"""
     out = []
     for _, r in rows.sort_values(sort_col, ascending=False).iterrows():
         b, s = float(r["b_value"]), float(r["s_value"])
         if b <= 0 and s <= 0:
             continue
-        out.append({"agency": r["agency"], "category": r["category"], "tag": r["tag"],
-                    "b": round(b, 0), "s": round(s, 0),
-                    "value": round(b if sort_col == "b_value" else s, 0),
-                    "rank": (int(r["rank"]) if pd.notna(r["rank"]) else None)})
+        seat = {"agency": r["agency"], "category": r["category"], "tag": r["tag"],
+                "b": round(b, 0), "s": round(s, 0),
+                "value": round(b if sort_col == "b_value" else s, 0),
+                "rank": (int(r["rank"]) if pd.notna(r["rank"]) else None)}
+        for k in ["group", "tier", "alias"]:
+            if r.get(k):
+                seat[k] = r[k]
+        out.append(seat)
     return out
 
 
@@ -252,7 +255,10 @@ def _agg_seats(side_rows: pd.DataFrame, val: str) -> list:
     """同一席位跨多个上榜原因合并（用于个股汇总的买/卖席位列表与合集视图）。"""
     if side_rows.empty:
         return []
-    a = side_rows.groupby(["agency", "category", "tag"], as_index=False).agg(
+    for c in ["group", "tier", "alias"]:
+        if c not in side_rows.columns:
+            side_rows = side_rows.assign(**{c: ""})
+    a = side_rows.groupby(["agency", "category", "tag", "group", "tier", "alias"], as_index=False).agg(
         b_value=("b_value", "sum"), s_value=("s_value", "sum"), rank=("rank", "min"))
     return _seats_from(a, val)
 
