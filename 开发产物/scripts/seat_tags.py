@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Optional
 
 _LIB_PATH = Path(__file__).resolve().parent / "seat_library.json"
+_YYB_MAP_PATH = Path(__file__).resolve().parent / "seat_yyb_map.json"
 
 # 内置最小兜底（JSON 缺失时用）
 _FALLBACK = {
@@ -62,6 +63,15 @@ def _sorted_seats() -> list[dict]:
 
 
 @lru_cache(maxsize=1)
+def _yyb_map() -> dict:
+    """爬取的「营业部全称 → 游资标签」精确映射（build_seat_map.py 生成）。"""
+    try:
+        return json.loads(_YYB_MAP_PATH.read_text(encoding="utf-8")).get("map", {})
+    except Exception:
+        return {}
+
+
+@lru_cache(maxsize=1)
 def _overrides() -> list[dict]:
     path = os.getenv("B7_SEAT_OVERRIDE")
     if not path or not os.path.exists(path):
@@ -76,15 +86,18 @@ def _overrides() -> list[dict]:
 def _entry(d: dict) -> dict:
     return {"category": d.get("category", "游资"), "tag": d.get("tag", d.get("match", "")),
             "group": d.get("group", ""), "tier": d.get("tier", ""),
-            "alias": d.get("alias", ""), "note": d.get("note", "")}
+            "alias": d.get("alias", ""), "confidence": d.get("confidence", ""),
+            "note": d.get("note", "")}
 
 
 def _blank(category: str, tag: str = "", note: str = "") -> dict:
-    return {"category": category, "tag": tag, "group": "", "tier": "", "alias": "", "note": note}
+    return {"category": category, "tag": tag, "group": "", "tier": "", "alias": "",
+            "confidence": "", "note": note}
 
 
 def match_seat(agency: Optional[str]) -> dict:
-    """营业部名 → {category, tag, group, tier, alias, note}。"""
+    """营业部名 → {category, tag, group, tier, alias, confidence, note}。
+    优先级：北向 > 机构 > 外部覆盖 > 爬取精确映射(营业部全称) > 子串种子库 > 营业部兜底 > 普通。"""
     a = str(agency or "").strip()
     if not a:
         return _blank("普通")
@@ -95,14 +108,25 @@ def match_seat(agency: Optional[str]) -> dict:
     # 2) 机构
     if any(k in a for k in rules.get("inst", [])):
         return _blank("机构", "机构专用", "机构席位")
-    # 3) 外部覆盖 + 库（最长子串优先）
-    for d in _overrides() + _sorted_seats():
+    # 3) 外部覆盖（最长子串优先）
+    for d in _overrides():
         if d.get("match") and d["match"] in a:
             return _entry(d)
-    # 4) 其他具名券商席位 → 营业部（游资/大户活跃席位，未在库标注）
+    # 4) 爬取的精确映射（营业部全称完全匹配，带游资本尊 alias + 置信度）
+    hit = _yyb_map().get(a)
+    if hit:
+        return {"category": hit.get("category", "游资"), "tag": hit.get("tag", ""),
+                "group": hit.get("group", ""), "tier": "", "alias": hit.get("alias", ""),
+                "confidence": hit.get("confidence", ""),
+                "note": f"爬取映射·{hit.get('confidence','')}·最近 {hit.get('last_seen','')}"}
+    # 5) 子串种子库（最长子串优先）
+    for d in _sorted_seats():
+        if d.get("match") and d["match"] in a:
+            return _entry(d)
+    # 6) 其他具名券商席位 → 营业部（游资/大户活跃席位，未在库标注）
     if any(k in a for k in rules.get("branch", _FALLBACK["rules"]["branch"])):
-        return _blank("营业部", "", "具名营业部席位（未标注，建议补入 seat_library.json）")
-    # 5) 兜底
+        return _blank("营业部", "", "具名营业部席位（未标注，建议补入席位库）")
+    # 7) 兜底
     return _blank("普通")
 
 
@@ -120,9 +144,11 @@ def library_size() -> dict:
     seats = _lib().get("seats", [])
     n_hot = sum(1 for s in seats if s.get("category") == "游资")
     n_quant = sum(1 for s in seats if s.get("category") == "量化")
-    n_alias = sum(1 for s in seats if s.get("alias"))
-    return {"seats": len(seats), "游资": n_hot, "量化": n_quant,
-            "已填本尊": n_alias, "override": len(_overrides())}
+    ymap = _yyb_map()
+    return {"seeds": len(seats), "seed_游资": n_hot, "seed_量化": n_quant,
+            "yyb_map": len(ymap), "yyb_游资": sum(1 for v in ymap.values() if v.get("category") == "游资"),
+            "yyb_量化": sum(1 for v in ymap.values() if v.get("category") == "量化"),
+            "override": len(_overrides())}
 
 
 def groups() -> dict:

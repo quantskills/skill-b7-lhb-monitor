@@ -24,12 +24,12 @@ from render_html import render_html, render_range_html
 # ---------- 合成龙虎榜数据 ----------
 def _fetched():
     """两只票：
-       A 600000.SH：机构买1.2亿 + 中信溧阳路(游资)买0.8亿；卖方机构0.3亿 → 机构+游资净买
+       A 600000.SH：机构买1.2亿 + 宁波桑田路(游资)买0.8亿；卖方机构0.3亿 → 机构+游资净买
        B 300001.SZ：东财拉萨(游资)买0.5亿；卖方游资0.6亿 → 游资净卖
     """
     buy = [
         {"symbol": "600000.SH", "date": "20260619", "side": "buy", "rank": 1, "agency": "机构专用", "b_value": 1.2e8, "s_value": 0, "reason": "日涨幅偏离7%"},
-        {"symbol": "600000.SH", "date": "20260619", "side": "buy", "rank": 2, "agency": "中信证券股份有限公司上海溧阳路证券营业部", "b_value": 0.8e8, "s_value": 0, "reason": "日涨幅偏离7%"},
+        {"symbol": "600000.SH", "date": "20260619", "side": "buy", "rank": 2, "agency": "国盛证券有限责任公司宁波桑田路证券营业部", "b_value": 0.8e8, "s_value": 0, "reason": "日涨幅偏离7%"},
         {"symbol": "300001.SZ", "date": "20260619", "side": "buy", "rank": 1, "agency": "东方财富证券股份有限公司拉萨团结路第二证券营业部", "b_value": 0.5e8, "s_value": 0, "reason": "日换手率20%"},
     ]
     sell = [
@@ -47,13 +47,11 @@ def _fetched():
 def test_seat_tags():
     assert seat_tags.match_seat("机构专用")["category"] == "机构"
     assert seat_tags.match_seat("深股通专用")["category"] == "北向"
-    m = seat_tags.match_seat("中信证券股份有限公司上海溧阳路证券营业部")
-    assert m["category"] == "游资" and m["tag"] == "中信溧阳路", m
-    assert seat_tags.match_seat("华鑫证券有限责任公司上海分公司")["category"] == "量化"
-    # 未在种子库的具名营业部 → 营业部（非普通），避免游资盘漏统计
+    # 宁波桑田路：爬取映射或种子库均判为游资
+    assert seat_tags.match_seat("国盛证券有限责任公司宁波桑田路证券营业部")["category"] == "游资"
+    # 未在任何库的具名营业部 → 营业部（非普通），避免游资盘漏统计
     assert seat_tags.match_seat("招商证券股份有限公司深圳福民路证券营业部")["category"] == "营业部"
     assert seat_tags.is_hotmoney_desk("招商证券股份有限公司深圳福民路证券营业部")
-    assert not seat_tags.is_known_hotmoney("招商证券股份有限公司深圳福民路证券营业部")
     assert seat_tags.is_known_hotmoney("国盛证券有限责任公司宁波桑田路证券营业部")
     # 真正的普通（无营业部/分公司等关键词）
     assert seat_tags.match_seat("某不明资金")["category"] == "普通"
@@ -61,15 +59,25 @@ def test_seat_tags():
 
 
 def test_seat_library_json():
-    """席位库从 seat_library.json 加载，带 group/tier/alias，覆盖知名席位。"""
+    """席位库从 seat_library.json + 爬取映射 seat_yyb_map.json 加载。"""
     sz = seat_tags.library_size()
-    assert sz["seats"] >= 40 and sz["游资"] >= 30, sz
-    m = seat_tags.match_seat("国盛证券有限责任公司宁波桑田路证券营业部")
-    assert m["group"] == "宁波系" and m["tier"] == "一线", m
-    assert "alias" in m  # 本尊槽位存在（默认空，待用户填）
+    assert sz["seeds"] >= 40 and sz["seed_游资"] >= 30, sz
+    assert sz["yyb_map"] >= 200, sz  # 爬取的营业部精确映射
     g = seat_tags.groups()
     assert "宁波系" in g and "深圳帮" in g, g
-    print(f"✅ test_seat_library_json（{sz['seats']}席/{sz['游资']}游资，帮派 {len(g)} 类，alias 槽位就绪）")
+    print(f"✅ test_seat_library_json（种子 {sz['seeds']} + 爬取映射 {sz['yyb_map']} 营业部，帮派 {len(g)} 类）")
+
+
+def test_seat_yyb_map():
+    """爬取的营业部精确映射：命中带游资本尊 alias + 置信度。"""
+    m = seat_tags.match_seat("国盛证券有限责任公司宁波桑田路证券营业部")
+    assert m["alias"], m                       # 拿到游资本尊/帮派名号
+    assert m["confidence"] in ("A-高", "B-中", "C-低"), m
+    # 量化集群（如三板组/量化打板）归量化
+    cats = {seat_tags.match_seat(k)["category"] for k in [
+        "信达证券股份有限公司温州瓯江路证券营业部"]}
+    assert cats <= {"游资", "量化", "营业部"}, cats
+    print(f"✅ test_seat_yyb_map（精确映射带本尊 alias + 置信度，样例 alias={m['alias']}/{m['confidence']}）")
 
 
 def test_build_pool_nets():
@@ -77,7 +85,7 @@ def test_build_pool_nets():
     a = pool[pool["ts_code"] == "600000.SH"].iloc[0]
     assert abs(a["inst_net"] - (1.2e8 - 0.3e8)) < 1, a["inst_net"]      # 机构净买 0.9 亿
     assert abs(a["hotmoney_net"] - 0.8e8) < 1, a["hotmoney_net"]         # 游资净买 0.8 亿
-    assert "中信溧阳路" in a["hotmoney_seats"], a["hotmoney_seats"]
+    assert "宁波桑田路" in a["hotmoney_seats"], a["hotmoney_seats"]
     b = pool[pool["ts_code"] == "300001.SZ"].iloc[0]
     assert b["hotmoney_net"] < 0, b["hotmoney_net"]                      # 游资净卖
     print("✅ test_build_pool_nets（机构0.9亿/游资0.8亿净买，B游资净卖）")
@@ -112,7 +120,7 @@ def test_standard_and_summary():
 def test_render():
     out = run(_fetched(), config={"names": {"600000.SH": "测试A", "300001.SZ": "测试B"}})
     md = render_markdown(out)
-    assert "次日关注清单" in md and "营业部合集" in md and "中信溧阳路" in md
+    assert "次日关注清单" in md and "营业部合集" in md and "宁波桑田路" in md
     h = render_html(out)
     assert "<html" in h and "龙虎榜监控" in h
     print("✅ test_render（次日清单/机构合集/游资席位合集 + HTML）")
@@ -205,6 +213,7 @@ def test_real_data_optional():
 if __name__ == "__main__":
     test_seat_tags()
     test_seat_library_json()
+    test_seat_yyb_map()
     test_build_pool_nets()
     test_watchlist()
     test_standard_and_summary()

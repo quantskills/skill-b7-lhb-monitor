@@ -99,7 +99,7 @@ def _hotmoney_seat_table(d: pd.DataFrame, top: int = 25) -> str:
     lines = ["| 营业部/游资席位 | 帮派 | 出手 | 买入标的（金额） |", "|---|---|---:|---|"]
     for key, e in items[:top]:
         picks = sorted(e["picks"], key=lambda x: -x[2])
-        name = f"{key}（{e['alias']}）" if e.get("alias") else key
+        name = f"{key}（{e['alias']}）" if (e.get("alias") and e["alias"] != key) else key
         label = f"**{name}**" if e["famous"] else name
         grp = e.get("group", "") or ("—" if e["famous"] else "")
         txt = "，".join(f"{nm}({ts.split('.')[0]},{v/1e8:.2f}亿)" for nm, ts, v in picks[:6])

@@ -167,7 +167,7 @@ function seatTab(){{
   if(!keys.length)return '<div class="empty">当日无营业部席位买入。</div>';
   let h='';keys.forEach(k=>{{const e=m[k];const ps=e.picks.sort((a,b)=>b.v-a.v);
     const star=e.famous?'★ ':'';
-    const meta=(e.group?`<span class="cnt"> ${{e.group}}</span>`:'')+(e.alias?`<span class="cnt"> ·${{e.alias}}</span>`:'');
+    const meta=(e.group?`<span class="cnt"> ${{e.group}}</span>`:'')+((e.alias&&e.alias!==k)?`<span class="cnt"> ·${{e.alias}}</span>`:'');
     h+=`<div class="ladder"><div class="lhd"><span class="bn">${{star}}${{k}}</span>${{meta}}<span class="cnt">出手 ${{ps.length}}</span></div><div class="sc">`+
        ps.map(x=>`<span class="x">${{x.n}}<em>${{(x.v/1e8).toFixed(2)}}亿</em></span>`).join('')+'</div></div>';}});
   return h;

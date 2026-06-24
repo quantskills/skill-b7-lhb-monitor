@@ -1,7 +1,7 @@
 {
   "name": "build-b7-lhb-monitor",
-  "version": "1.3.0",
-  "seat_library": "scripts/seat_library.json (独立可维护游资席位库, 按帮派/级别组织, 含 alias 本尊槽位)",
+  "version": "1.4.0",
+  "seat_library": "scripts/seat_yyb_map.json (爬取的317营业部→游资本尊精确映射, build_seat_map.py 生成) + scripts/seat_library.json (子串种子库兜底); 原始爬取文档 references/seat_data/",
   "build_id": "B7",
   "build_name": "龙虎榜监控+席位标签库",
   "type": "monitor",
@@ -13,6 +13,7 @@
     "fetch": "scripts/build.py:fetch_lhb",
     "range_stats": "scripts/build.py:range_stats",
     "seat_match": "scripts/seat_tags.py:match_seat",
+    "build_seat_map": "scripts/build_seat_map.py (爬取CSV→seat_yyb_map.json, 重爬后刷新)",
     "render_markdown": "scripts/render.py:render_markdown",
     "render_stock_detail": "scripts/render.py:render_stock_detail",
     "render_range_stats": "scripts/render.py:render_range_stats",

@@ -57,7 +57,16 @@ export PANDA_PASSWORD=<密码>              # 兼容 PANDA_DATA_PASSWORD
         （能进买卖前五即显著资金，归营业部而非普通，避免游资盘漏统计；实测覆盖率≈99%）
 普通：无法识别的异常名（极少）
 
-席位库数据文件 seat_library.json（独立可维护，改 JSON 即扩库，不动代码）：
+席位库（两层，匹配优先级：北向>机构>外部覆盖>爬取精确映射>子串种子库>营业部兜底>普通）：
+
+seat_yyb_map.json（最高优先级，营业部全称精确匹配）：由爬取的「游资席位标签集锦」CSV 经
+  build_seat_map.py 生成，317 营业部 → {category, tag, alias(游资本尊:章盟主/作手新一/消闲派…),
+  group(标签类型), confidence(A-高/B-中/C-低), last_seen}。一营业部多标签时取最优(有效>置信度>观测次数)。
+  标签类型含"量化"(三板组/量化打板/量化基金等策略量化集群)→category=量化；其余→游资。
+  重爬刷新：新 CSV 放 references/seat_data/ → python scripts/build_seat_map.py。
+  ⚠️ 游资别名是民间观测映射(非券商官方身份)，会迁移，结合 confidence/last_seen 用。
+
+seat_library.json（子串种子库兜底，独立可维护，改 JSON 即扩库，不动代码）：
   rules: {north, inst, branch} 确定性关键词
   seats: [{match, category, tag(俗称), group(帮派), tier(一线/二线), alias(游资本尊·默认空), note}]
   帮派(group)：上海帮/深圳帮/宁波系/浙系/成都系/佛山系/拉萨系/温州帮/北京帮/量化通道/外资通道
