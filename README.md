@@ -1,10 +1,17 @@
-# B7 · 龙虎榜监控 + 席位标签库
+# skill-b7-lhb-monitor · 龙虎榜监控 + 席位标签库
+
+[![status](https://img.shields.io/badge/status-Community%20Project-blue)](https://github.com/quantskills/join/blob/main/COMMUNITY_RULES.md) [![license](https://img.shields.io/badge/license-GPL--3.0--only-green)](LICENSE)
+
+> ⚠️ **Community Project（社区项目）**：本项目由社区成员创建，**未经 QuantSkills 官方审核 / 认证 / 背书**。
+> **仅供量化研究与教育示例，不构成投资建议，不承诺任何收益。** 游资别名为民间观测映射、非券商官方身份、会迁移，
+> **不构成对任何个人/机构的指认**。边界声明见文末。
+> 声明文件 [SKILL.md](SKILL.md) ｜ English [README.en.md](README.en.md) ｜ 许可 [LICENSE](LICENSE)（GPL-3.0-only）
 
 > 收盘后自动抓取 A 股龙虎榜，用**席位标签库**把营业部匹配成 北向/机构/游资/量化/营业部（覆盖率≈99%），
 > 并接入**爬取的游资本尊库**（317 营业部 → 章盟主·作手新一·消闲派…+ 置信度）。
 > 生成**次日关注清单**，每日整理**机构合集 / 营业部合集 / 个股详情页 / 区间统计**，出**交互式 HTML 看板**。
 >
-> **类型**：监控预警型 BUILD ｜ **数据源**：PandaData ｜ **服务对象**：盘后复盘 agent · 游资情绪 Alpha · 人工复盘
+> **类型**：监控预警型 Skill ｜ **数据源**：PandaData ｜ **服务对象**：盘后复盘 agent · 游资情绪研究 · 人工复盘
 
 ---
 
@@ -169,4 +176,16 @@ build-b7-lhb-monitor/
 详细字段口径见 [开发产物/SKILL.md](开发产物/SKILL.md) 与 [开发产物/references/api_guide.md](开发产物/references/api_guide.md)。
 
 ---
-_借鉴 capital_pricing/seat_analysis 的四类席位逻辑，改为离线可复现（不依赖在线 AI）。仅供研究，不构成投资建议。_
+
+## ⚠️ 边界与免责声明（社区规则 §4 / §8）
+
+- **项目状态**：Community Project，未经 QuantSkills 官方审核 / 认证 / 验证 / 背书，非生产可用认证项目。
+- **数据来源**：PandaData（`panda_data` ≥ 0.0.9）。
+- **假设条件**：`net_buy` 为龙虎榜返回席位（买卖各 top5）净额，与部分行情软件"净买入"口径可能不同。
+- **参数**：次日清单打分权重 / 关注 top-N 可配置。
+- **已知限制**：龙虎榜傍晚才出（~19:30 后跑）；**游资别名为民间观测映射、非券商官方身份、会迁移**，
+  每条带 `confidence`(A/B/C)/`last_seen`，C-低不可单独当定论。
+- **风险边界**：输出为研究/复盘用的**客观统计与资金画像，不含买卖建议**。**不构成对任何个人/机构的指认。**
+- **项目性质**：**仅供量化研究与教育示例，不构成投资建议，不承诺收益，不暗示策略安全或保证盈利。**
+- **署名/许可**：四类席位逻辑借鉴 `capital_pricing/seat_analysis`（改为离线可复现）；席位本尊映射来自使用方爬取观测数据。许可证 **GPL-3.0-only**（[LICENSE](LICENSE)）。
+- **维护者**：[@ZLHad](https://github.com/ZLHad)。

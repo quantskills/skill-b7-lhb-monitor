@@ -1,0 +1,46 @@
+# QuantSkills project manifest — skill-b7-lhb-monitor
+metadata:
+  organization: QuantSkills
+  organization_url: https://github.com/quantskills
+  repository: skill-b7-lhb-monitor
+  repository_url: https://github.com/quantskills/skill-b7-lhb-monitor
+  project_type: skill
+  collection: dragon-tiger-monitor
+  license: GPL-3.0-only
+  status: community-project          # 未经官方审核/认证
+  maintainer: ZLHad
+
+name: 龙虎榜监控 + 席位标签库 (Dragon-Tiger Monitor + Seat Tag Library)
+summary: >-
+  收盘后抓取 A 股龙虎榜，席位标签匹配(北向/机构/游资/量化/营业部)，生成次日关注清单，
+  含个股详情/区间统计/交互式 HTML 看板。游资别名为民间观测映射，仅供研究，不构成投资建议。
+
+declaration: SKILL.md
+detailed_skill: 开发产物/SKILL.md
+readme:
+  zh: README.md
+  en: README.en.md
+
+data_source: PandaData (panda_data>=0.0.9)
+dependencies: [panda_data>=0.0.9, pandas, numpy, pyarrow]
+
+entrypoints:
+  cli: python 开发产物/scripts/build.py --mode daily
+  call: 开发产物/scripts/build.py:run
+  daily: 开发产物/scripts/build.py:maintain_daily
+  backfill: 开发产物/scripts/build.py:backfill
+  build_seat_map: 开发产物/scripts/build_seat_map.py     # 爬取CSV→席位本尊映射
+  render_markdown: 开发产物/scripts/render.py:render_markdown
+  render_html: 开发产物/scripts/render_html.py:render_html
+
+runtimes:
+  claude-code: { declaration: 开发产物/SKILL.md, invoke: cli }
+  codex:       { declaration: SKILL.md, invoke: cli }
+  cursor:      { declaration: SKILL.md, invoke: cli }
+  hermes:      { declaration: SKILL.md, invoke: cli }
+  openclaw:    { declaration: SKILL.md, invoke: cli }
+
+disclaimer: >-
+  Community Project，未经 QuantSkills 官方审核/认证/背书。仅供量化研究与教育示例，
+  不构成投资建议，不承诺收益。游资别名为民间观测映射、非券商官方身份、会迁移，不构成对个人/机构的指认。
+  数据源、假设、参数、限制与风险边界见 SKILL.md。
