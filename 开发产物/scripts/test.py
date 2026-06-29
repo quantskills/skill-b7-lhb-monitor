@@ -194,13 +194,55 @@ def test_interactive_html():
     print("✅ test_interactive_html（内嵌数据 + tab/搜索/排序/展开详情 JS）")
 
 
+def test_single_side_day():
+    """单边日（仅买方 / 仅卖方）不得崩溃（验收报告 B7 缺陷①：object dtype 致 b_value-s_value TypeError）。"""
+    buy_only = {"list": [], "sell": [], "buy": [
+        {"symbol": "600000.SH", "date": "20260619", "side": "buy", "rank": 1,
+         "agency": "机构专用", "b_value": 1.2e8, "s_value": 0, "reason": "涨幅偏离7%"},
+        {"symbol": "600000.SH", "date": "20260619", "side": "buy", "rank": 2,
+         "agency": "国盛证券有限责任公司宁波桑田路证券营业部", "b_value": 0.8e8, "s_value": 0, "reason": "涨幅偏离7%"},
+    ]}
+    out = run(buy_only, config={"names": {"600000.SH": "测试A"}})
+    a = out[out["ts_code"] == "600000.SH"].iloc[0]
+    assert abs(a["inst_net"] - 1.2e8) < 1, a["inst_net"]
+    assert abs(a["hotmoney_net"] - 0.8e8) < 1, a["hotmoney_net"]
+
+    sell_only = {"list": [], "buy": [], "sell": [
+        {"symbol": "300001.SZ", "date": "20260619", "side": "sell", "rank": 1,
+         "agency": "国盛证券有限责任公司宁波桑田路证券营业部", "b_value": 0, "s_value": 0.6e8, "reason": "换手20%"},
+    ]}
+    out2 = run(sell_only, config={"names": {"300001.SZ": "测试B"}})
+    b = out2[out2["ts_code"] == "300001.SZ"].iloc[0]
+    assert b["hotmoney_net"] < 0, b["hotmoney_net"]
+    print("✅ test_single_side_day（仅买/仅卖单边日不崩溃，净额方向正确）")
+
+
+def test_city_key_no_false_positive():
+    """裸地名键收紧（验收报告 B7 缺陷②）：同城他券商营业部不得被误标为某具名游资。"""
+    # 误标样例 → 应落"营业部"（仍计入游资盘，但不冒认具名游资）
+    for ag in ["国泰君安证券股份有限公司绍兴营业部",
+               "广发证券股份有限公司佛山分公司",
+               "某证券义乌稠城营业部",
+               "中信证券股份有限公司拉萨营业部"]:
+        assert seat_tags.match_seat(ag)["category"] == "营业部", ag
+    # 真正的具名游资仍命中（绍兴=种子 AND 匹配；三亚迎宾路=高置信爬取映射）
+    assert seat_tags.match_seat("中国银河证券股份有限公司绍兴营业部")["tag"] == "银河绍兴"
+    fs = seat_tags.match_seat("国泰海通证券股份有限公司三亚迎宾路证券营业部")
+    assert fs["category"] == "游资" and "佛山" in fs["tag"], fs
+    # 东财拉萨 street 级 curated 映射不被 C-低 爬取条目覆盖
+    m = seat_tags.match_seat("东方财富证券股份有限公司拉萨团结路第二证券营业部")
+    assert m["category"] == "游资" and "拉萨" in m["tag"], m
+    print("✅ test_city_key_no_false_positive（裸地名误标已修，具名/AND 匹配仍命中）")
+
+
 def test_real_data_optional():
     try:
         out = maintain_daily()
     except Exception as e:  # noqa: BLE001
         msg = str(e)
-        if any(k in msg for k in ("500009", "单日总流量", "200103", "权限", "环境变量", "ServiceError", "504")):
-            print(f"⏭️  test_real_data_optional 跳过（配额/权限/服务/凭证）：{msg[:60]}")
+        if any(k in msg for k in ("500009", "单日总流量", "200103", "权限", "环境变量", "ServiceError",
+                                   "504", "无法导入", "panda_data", "pip")):
+            print(f"⏭️  test_real_data_optional 跳过（配额/权限/服务/凭证/未装 SDK）：{msg[:60]}")
             return
         raise
     if out.empty:
@@ -222,5 +264,7 @@ if __name__ == "__main__":
     test_stock_detail_and_range()
     test_interactive_html()
     test_empty_and_missing()
+    test_single_side_day()
+    test_city_key_no_false_positive()
     test_real_data_optional()
     print("\n🎉 全部测试通过")

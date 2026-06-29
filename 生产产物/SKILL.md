@@ -20,6 +20,11 @@ tags: [quant, build, production, monitor, dragon-tiger, seat]
 - 生成任务：`python build-b7-lhb-monitor/开发产物/scripts/build.py --mode daily --date <交易日>`
 - 历史回填：`--mode backfill --start <起> --end <止>`
 
+> 注：`database.parquet` 由生产任务在 PandaData 配额可用时生成，本仓库不内置合成数据。
+> **随包样例溯源**：当前随包 `database.parquet` 为真实龙虎榜复盘样例，覆盖 **2026-06-18 ~ 2026-06-23**
+> （`data_version=pandadata-lhb-monitor-v1`），由 `maintain_daily` 真实抓取生成、可用 `--mode backfill`
+> 重建，非测试桩/合成数据。
+
 ## 主键
 
 - `trade_date` / `build_id` / `target_id` / `result_type`

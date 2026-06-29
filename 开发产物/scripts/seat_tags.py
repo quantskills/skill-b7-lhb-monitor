@@ -56,10 +56,26 @@ def _lib() -> dict:
         return _FALLBACK
 
 
+def _match_len(m) -> int:
+    """match 的总字符长度（list 形态=各 token 长度之和），用于"最具体优先"排序。"""
+    if isinstance(m, (list, tuple)):
+        return sum(len(str(t)) for t in m)
+    return len(str(m or ""))
+
+
+def _match_hit(m, a: str) -> bool:
+    """命中判定：字符串=子串包含；list=所有 token 均为子串。
+    list 形态用于"券商+地名"AND 匹配（如 ["银河","绍兴"]），避免裸地名键把
+    同城任意券商营业部误标为某具名游资。"""
+    if isinstance(m, (list, tuple)):
+        return bool(m) and all(str(t) in a for t in m)
+    return bool(m) and str(m) in a
+
+
 @lru_cache(maxsize=1)
 def _sorted_seats() -> list[dict]:
-    """库内席位按 match 子串长度降序，最具体优先。"""
-    return sorted(_lib().get("seats", []), key=lambda d: len(d.get("match", "")), reverse=True)
+    """库内席位按 match 长度降序，最具体优先（list 形态按 token 长度之和）。"""
+    return sorted(_lib().get("seats", []), key=lambda d: _match_len(d.get("match", "")), reverse=True)
 
 
 @lru_cache(maxsize=1)
@@ -78,13 +94,15 @@ def _overrides() -> list[dict]:
         return []
     try:
         data = json.loads(open(path, encoding="utf-8").read())
-        return sorted([d for d in data if "match" in d], key=lambda d: len(d["match"]), reverse=True)
+        return sorted([d for d in data if "match" in d], key=lambda d: _match_len(d["match"]), reverse=True)
     except Exception:
         return []
 
 
 def _entry(d: dict) -> dict:
-    return {"category": d.get("category", "游资"), "tag": d.get("tag", d.get("match", "")),
+    m = d.get("match", "")
+    default_tag = "".join(str(t) for t in m) if isinstance(m, (list, tuple)) else m
+    return {"category": d.get("category", "游资"), "tag": d.get("tag", default_tag),
             "group": d.get("group", ""), "tier": d.get("tier", ""),
             "alias": d.get("alias", ""), "confidence": d.get("confidence", ""),
             "note": d.get("note", "")}
@@ -95,9 +113,19 @@ def _blank(category: str, tag: str = "", note: str = "") -> dict:
             "confidence": "", "note": note}
 
 
+def _from_yyb(hit: dict) -> dict:
+    return {"category": hit.get("category", "游资"), "tag": hit.get("tag", ""),
+            "group": hit.get("group", ""), "tier": "", "alias": hit.get("alias", ""),
+            "confidence": hit.get("confidence", ""),
+            "note": f"爬取映射·{hit.get('confidence','')}·最近 {hit.get('last_seen','')}"}
+
+
 def match_seat(agency: Optional[str]) -> dict:
     """营业部名 → {category, tag, group, tier, alias, confidence, note}。
-    优先级：北向 > 机构 > 外部覆盖 > 爬取精确映射(营业部全称) > 子串种子库 > 营业部兜底 > 普通。"""
+    优先级：北向 > 机构 > 外部覆盖 > 爬取精确映射(高/中置信) > 子串种子库(curated) >
+    爬取精确映射(C-低/无置信兜底) > 营业部兜底 > 普通。
+    说明：C-低 单次观测的爬取条目可信度低，让位于人工 curated 的种子库 street 级映射，
+    避免如「东财拉萨团结路」被一条 C-低 爬取误标为「宁波桑田路」。"""
     a = str(agency or "").strip()
     if not a:
         return _blank("普通")
@@ -110,23 +138,23 @@ def match_seat(agency: Optional[str]) -> dict:
         return _blank("机构", "机构专用", "机构席位")
     # 3) 外部覆盖（最长子串优先）
     for d in _overrides():
-        if d.get("match") and d["match"] in a:
+        if _match_hit(d.get("match"), a):
             return _entry(d)
-    # 4) 爬取的精确映射（营业部全称完全匹配，带游资本尊 alias + 置信度）
+    # 4) 爬取精确映射（营业部全称完全匹配）——高/中置信优先于种子库
     hit = _yyb_map().get(a)
-    if hit:
-        return {"category": hit.get("category", "游资"), "tag": hit.get("tag", ""),
-                "group": hit.get("group", ""), "tier": "", "alias": hit.get("alias", ""),
-                "confidence": hit.get("confidence", ""),
-                "note": f"爬取映射·{hit.get('confidence','')}·最近 {hit.get('last_seen','')}"}
-    # 5) 子串种子库（最长子串优先）
+    if hit and hit.get("confidence", "") not in ("C-低", ""):
+        return _from_yyb(hit)
+    # 5) 子串种子库（curated，最长子串优先；list 形态=券商+地名 AND 匹配）
     for d in _sorted_seats():
-        if d.get("match") and d["match"] in a:
+        if _match_hit(d.get("match"), a):
             return _entry(d)
-    # 6) 其他具名券商席位 → 营业部（游资/大户活跃席位，未在库标注）
+    # 6) 低置信(C-低/无)爬取映射兜底——无种子命中时仍给出（带 C-低 标注供使用方甄别）
+    if hit:
+        return _from_yyb(hit)
+    # 7) 其他具名券商席位 → 营业部（游资/大户活跃席位，未在库标注）
     if any(k in a for k in rules.get("branch", _FALLBACK["rules"]["branch"])):
         return _blank("营业部", "", "具名营业部席位（未标注，建议补入席位库）")
-    # 7) 兜底
+    # 8) 兜底
     return _blank("普通")
 
 

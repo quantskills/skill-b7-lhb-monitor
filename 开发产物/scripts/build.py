@@ -139,7 +139,13 @@ def resolve_last_trade(end_date: str, pd_api: Any) -> str:
 def _norm_detail(df: pd.DataFrame, side: str) -> pd.DataFrame:
     cols = ["ts_code", "trade_date", "side", "type", "rank", "agency", "b_value", "s_value", "reason"]
     if df is None or df.empty:
-        return pd.DataFrame(columns=cols)
+        # 显式 dtype 的空表：避免单边日(仅买或仅卖) concat 时把 b_value/s_value 污染成 object，
+        # 进而令下游 "b_value - s_value" 抛 TypeError（float64 vs object）。
+        empty = pd.DataFrame({c: pd.Series(dtype="object") for c in cols})
+        for c in ("b_value", "s_value", "rank"):
+            empty[c] = pd.Series(dtype="float64")
+        empty["trade_date"] = pd.Series(dtype="datetime64[ns]")
+        return empty
     df = df.rename(columns={"symbol": "ts_code", "date": "trade_date"}).copy()
     for c in ["agency", "reason", "type"]:
         if c not in df.columns:
@@ -263,15 +269,18 @@ def _agg_seats(side_rows: pd.DataFrame, val: str) -> list:
     return _seats_from(a, val)
 
 
-def _reasons_breakdown(g: pd.DataFrame) -> list:
+def _reasons_breakdown(g: pd.DataFrame, fallback_type: str = "", fallback_reason: str = "") -> list:
     """按上榜原因(type)拆分：每个原因 → 买入营业部组 + 卖出营业部组（含各自总计）。
-    对应同花顺式个股龙虎榜详情页（一只票一天可有多条上榜原因）。"""
+    对应同花顺式个股龙虎榜详情页（一只票一天可有多条上榜原因）。
+    detail 无 type（仅 list 侧给出上榜原因代码）时，回退用 list 级 type/reason 标注，
+    避免原因分组退化成空键 type=""（list/detail 口径不一致问题）。"""
     reasons = []
     for typ, gt in g.groupby("type", sort=False):
+        typ = str(typ)
         gtb, gts = gt[gt["side"] == "buy"], gt[gt["side"] == "sell"]
         reasons.append({
-            "type": str(typ),
-            "reason": "；".join(sorted(set(gt["reason"]) - {""})) or "",
+            "type": typ or fallback_type,
+            "reason": "；".join(sorted(set(gt["reason"]) - {""})) or fallback_reason,
             "buy": _seats_from(gtb, "b_value"),
             "sell": _seats_from(gts, "s_value"),
             "buy_total": round(float(gtb["b_value"].sum()), 0),
@@ -290,10 +299,22 @@ def build_pool(fetched: dict, names: Optional[dict] = None) -> pd.DataFrame:
     if buy.empty and sell.empty and lst.empty:
         return pd.DataFrame()
 
-    detail = pd.concat([buy, sell], ignore_index=True)
+    # 单边日(仅买方或仅卖方)防御：先过滤空表再 concat（避免空表 dtype 污染 + FutureWarning），
+    # 再强制数值化 b_value/s_value，杜绝下方 "b_value - s_value" 因 object dtype 崩溃。
+    detail_parts = [d for d in (buy, sell) if not d.empty]
+    detail = pd.concat(detail_parts, ignore_index=True) if detail_parts else buy.iloc[0:0].copy()
+    detail["b_value"] = _num(detail["b_value"])
+    detail["s_value"] = _num(detail["s_value"])
     keys = detail[["ts_code", "trade_date"]].drop_duplicates()
     if lst is not None and not lst.empty:
         keys = pd.concat([keys, lst[["ts_code", "trade_date"]]], ignore_index=True).drop_duplicates()
+
+    # list 级上榜原因（type/reason）查找表，detail 无 type 时作回退标注
+    lst_reason: dict = {}
+    if lst is not None and not lst.empty:
+        for _, lr in lst.iterrows():
+            lst_reason[(str(lr["ts_code"]), pd.Timestamp(lr["trade_date"]))] = (
+                str(lr.get("type", "") or ""), str(lr.get("reason", "") or ""))
 
     rows = []
     grp_detail = detail.groupby(["ts_code", "trade_date"], sort=False)
@@ -320,7 +341,7 @@ def build_pool(fetched: dict, names: Optional[dict] = None) -> pd.DataFrame:
             "hotmoney_seats": known_buy_seats, "top_buy_seat": top_buy_seat,
             "n_reasons": int(g["type"].nunique()),
             "buy_seats": _agg_seats(gb, "b_value"), "sell_seats": _agg_seats(gs, "s_value"),
-            "reasons": _reasons_breakdown(g),
+            "reasons": _reasons_breakdown(g, *lst_reason.get((str(ts), pd.Timestamp(td)), ("", ""))),
         })
     pool = pd.DataFrame(rows)
     if pool.empty:
@@ -429,12 +450,13 @@ def range_stats(panel: pd.DataFrame, ts_code: str, start: str | None = None,
         for seat in (j.get("buy_seats", []) + j.get("sell_seats", [])):
             key = seat["agency"]
             a = agg.setdefault(key, {"agency": key, "category": seat.get("category", "普通"),
-                                     "tag": seat.get("tag", ""), "buy": 0.0, "sell": 0.0, "days": 0})
+                                     "tag": seat.get("tag", ""), "buy": 0.0, "sell": 0.0, "_dates": set()})
             a["buy"] += float(seat.get("b", seat.get("value", 0)) or 0)
             a["sell"] += float(seat.get("s", 0) or 0)
-            a["days"] += 1
+            a["_dates"].add(r["trade_date"])   # 上榜天数按 trade_date 去重（同日既买又卖只算 1 天）
     seats = sorted(agg.values(), key=lambda x: -(x["buy"] - x["sell"]))
     for s in seats:
+        s["days"] = len(s.pop("_dates"))
         s["net"] = round(s["buy"] - s["sell"], 0)
         s["buy"], s["sell"] = round(s["buy"], 0), round(s["sell"], 0)
     return {"ts_code": str(ts_code), "name": name,
