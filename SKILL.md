@@ -1,5 +1,6 @@
 ---
 name: skill-b7-lhb-monitor
+description: Monitor A-share Dragon-Tiger List activity and seat labels for research. Use when analyzing 龙虎榜 records, institutional participation, or related market signals; this is research-only material, not investment advice.
 license: GPL-3.0-only
 metadata:
   organization: QuantSkills

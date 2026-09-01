@@ -1,0 +1,5 @@
+---
+description: Load the canonical QuantSkills skill instructions.
+---
+
+Follow the canonical root instructions in `SKILL.md`; this Cursor adapter adds no policy.
