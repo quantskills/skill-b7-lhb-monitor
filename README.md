@@ -109,8 +109,8 @@ flowchart LR
 
 | 层 | 文件 | 内容 | 维护方式 |
 |---|---|---|---|
-| 爬取精确映射（主） | `scripts/seat_yyb_map.json` | 317 营业部全称 → 游资本尊 alias + 帮派 + 置信度A/B/C + 最近观测 | **重爬**：新 CSV 放 `references/seat_data/` → 跑 `build_seat_map.py` |
-| 子串种子库（兜底） | `scripts/seat_library.json` | ~55 席（中信溧阳路·宁波桑田路·欢乐海岸·成都系…）按帮派/级别 | 直接改 JSON |
+| 爬取精确映射（主） | `开发产物/scripts/seat_yyb_map.json` | 317 营业部全称 → 游资本尊 alias + 帮派 + 置信度A/B/C + 最近观测 | **重爬**：新 CSV 放 `开发产物/references/seat_data/` → 跑 `build_seat_map.py` |
+| 子串种子库（兜底） | `开发产物/scripts/seat_library.json` | ~55 席（中信溧阳路·宁波桑田路·欢乐海岸·成都系…）按帮派/级别 | 直接改 JSON |
 | 临时覆盖 | env `B7_SEAT_OVERRIDE` | `[{"match","category","tag",...}]` | 不改仓库即生效 |
 
 > ⚠️ 游资别名是**民间观测映射、非券商官方身份、会迁移**——每条带 `confidence`(A/B/C) 与 `last_seen`，C-低不可单独当定论。仅供研究，不构成指认或投资建议。

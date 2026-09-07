@@ -1,3 +1,6 @@
+name: skill-b7-lhb-monitor
+entrypoint: SKILL.md
+canonical_root: SKILL.md
 interface:
   display_name: "Dragon-Tiger Monitor"
   short_description: "Monitor the A-share dragon-tiger list with a seat tag library and next-day watchlist"

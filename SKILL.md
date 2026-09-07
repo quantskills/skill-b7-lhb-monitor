@@ -1,7 +1,8 @@
 ---
 name: skill-b7-lhb-monitor
-description: 龙虎榜监控 + 席位标签库——收盘后抓取 A 股龙虎榜，用席位标签库把营业部匹配成北向/机构/游资/量化/营业部，生成次日关注清单，整理机构合集/营业部合集/个股详情/区间统计并输出交互式 HTML 看板。BUILD 型 skill，可被复盘 agent 调用。
+description: 龙虎榜监控与席位标签库：收盘后抓取 A 股龙虎榜，把营业部席位匹配为北向、机构、游资、量化或营业部标签，生成次日关注清单、个股详情与区间统计并输出交互式 HTML 看板。Use when analyzing dragon-tiger list records, seat labels, institutional or hot-money participation, or building a next-day watchlist. Research and education only, not investment advice.
 license: GPL-3.0-only
+supported-runtimes: [cursor, claude-code, codex, hermes, openclaw]
 metadata:
   organization: QuantSkills
   organization_url: https://github.com/quantskills
@@ -9,8 +10,33 @@ metadata:
   repository_url: https://github.com/quantskills/skill-b7-lhb-monitor
   project_type: skill
   collection: dragon-tiger-monitor
+  maintainer: ZLHad
+  tags: [a-share, dragon-tiger, seat-tags, hot-money, monitoring, pandadata]
+quantSkills:
+  schema_version: 2.1.0
+  organization: quantskills
+  organization_url: https://github.com/quantskills
+  repository: skill-b7-lhb-monitor
+  repository_url: https://github.com/quantskills/skill-b7-lhb-monitor
+  project_type: skill
   license: GPL-3.0-only
-  platforms: [claude-code, codex, cursor, hermes, openclaw]
+  maintainer: ZLHad
+  collection: dragon-tiger-monitor
+  catalog:
+    category: "04"
+    subcategory: 04.flow-crowding
+  workflow:
+    primary_stage: monitoring
+    workflow_stages: [data-ingestion, monitoring, reporting]
+  tags: [a-share, dragon-tiger, seat-tags, hot-money, monitoring, pandadata]
+  platforms: [cursor, claude-code, codex, hermes, openclaw]
+  status: active
+  validation_level: listed
+  maintainer_type: community
+  summary_zh: "收盘后抓取 A 股龙虎榜，席位匹配为北向、机构、游资、量化或营业部标签，生成次日关注清单、个股详情、区间统计与 HTML 看板。"
+  summary_en: "Pulls the post-market A-share dragon-tiger list, tags broker seats as northbound, institution, hot-money, quant or branch, and builds a next-day watchlist with an HTML dashboard; research only."
+  interface:
+    mode: natural-language
 ---
 
 # skill-b7-lhb-monitor · 龙虎榜监控 + 席位标签库（Dragon-Tiger Monitor）
