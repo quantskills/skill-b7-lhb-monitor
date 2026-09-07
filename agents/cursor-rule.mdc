@@ -1,5 +1,40 @@
 ---
-description: Load the canonical QuantSkills skill instructions.
+description: Use the Dragon-Tiger Monitor skill (skill-b7-lhb-monitor) when the user wants to pull the post-market A-share dragon-tiger list, tag broker seats as northbound / institution / hot-money / quant / branch, and produce a next-day watchlist or interval statistics.
+alwaysApply: false
 ---
 
-Follow the canonical root instructions in `SKILL.md`; this Cursor adapter adds no policy.
+# Dragon-Tiger Monitor Skill (skill-b7-lhb-monitor)
+
+当用户想在盘后抓取 A 股龙虎榜、把营业部席位匹配成北向/机构/游资/量化/营业部标签、生成次日关注清单或区间统计时，读取并遵循 [SKILL.md](../SKILL.md) 作为本 skill 的规范说明。
+详细调用声明见 `开发产物/SKILL.md`。
+
+Use this skill when the user wants to pull the post-market A-share dragon-tiger list, tag broker seats as northbound / institution / hot-money / quant / branch, and produce a next-day watchlist or interval statistics. Read and follow [SKILL.md](../SKILL.md) as the canonical
+instructions; the detailed agent-facing declaration lives in `开发产物/SKILL.md`.
+
+## Workflow
+
+1. Read `SKILL.md`, then `开发产物/SKILL.md`.
+2. Read the references before changing any data logic:
+- `开发产物/references/api_guide.md`
+3. Run the entrypoints from the repository root:
+
+```bash
+python 开发产物/scripts/build.py --mode daily
+python 开发产物/scripts/build.py --mode backfill --start 20250101 --end 20250630
+python 开发产物/scripts/render_html.py
+```
+
+## Hard rules / 硬性口径
+
+1. 席位标签来自标签库匹配，游资别名是民间观测映射、非券商官方身份、会迁移；输出必须带置信度并声明不构成对个人/机构的指认
+2. 单边日（只有买方或只有卖方）必须正常出结果，不得抛异常
+3. reasons/区间统计口径以 `开发产物/SKILL.md` 为准，不要自造统计口径
+
+1. Seat tags come from the tag library; hot-money aliases are community observations, not official broker identities, and they migrate over time; output must carry confidence and state that it does not identify any person or institution
+2. One-sided days (buyers only or sellers only) must still produce results without raising
+3. Reason and interval-statistic definitions follow `开发产物/SKILL.md`; do not invent new aggregation rules
+
+## Boundaries
+
+- Data source is PandaData via `panda_data`; credentials come only from environment variables or `~/.pandadata/pandadata.env`. Never hard-code or echo credentials.
+- Community Project, not reviewed, certified, or endorsed by QuantSkills. Research and educational use only; no investment advice, no return promises.

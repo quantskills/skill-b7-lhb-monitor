@@ -35,10 +35,10 @@ entrypoints:
 
 runtimes:
   claude-code: { declaration: 开发产物/SKILL.md, invoke: cli }
-  codex:       { declaration: SKILL.md, invoke: cli }
-  cursor:      { declaration: SKILL.md, invoke: cli }
-  hermes:      { declaration: SKILL.md, invoke: cli }
-  openclaw:    { declaration: SKILL.md, invoke: cli }
+  codex:       { declaration: SKILL.md, invoke: cli, adapter: agents/openai.yaml }
+  cursor:      { declaration: SKILL.md, invoke: cli, adapter: .cursor/rules/quantskills-skill.mdc, rule: agents/cursor-rule.mdc }
+  hermes:      { declaration: SKILL.md, invoke: cli, adapter: agents/portable-loader.md }
+  openclaw:    { declaration: SKILL.md, invoke: cli, adapter: agents/portable-loader.md }
 
 disclaimer: >-
   Community Project，未经 QuantSkills 官方审核/认证/背书。仅供量化研究与教育示例，

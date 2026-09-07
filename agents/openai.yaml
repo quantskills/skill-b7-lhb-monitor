@@ -1,3 +1,4 @@
-name: skill-b7-lhb-monitor
-entrypoint: SKILL.md
-canonical_root: SKILL.md
+interface:
+  display_name: "Dragon-Tiger Monitor"
+  short_description: "Monitor the A-share dragon-tiger list with a seat tag library and next-day watchlist"
+  default_prompt: "Use $skill-b7-lhb-monitor when the user wants to pull the post-market A-share dragon-tiger list, tag broker seats as northbound / institution / hot-money / quant / branch, and produce a next-day watchlist or interval statistics. Read SKILL.md first and follow its data-scope rules."

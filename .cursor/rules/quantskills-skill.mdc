@@ -1,0 +1,7 @@
+---
+description: Load the Dragon-Tiger Monitor skill (skill-b7-lhb-monitor) when the user wants to pull the post-market A-share dragon-tiger list, tag broker seats as northbound / institution / hot-money / quant / branch, and produce a next-day watchlist or interval statistics.
+alwaysApply: false
+---
+
+Read and follow [SKILL.md](SKILL.md) as the canonical skill instructions.
+The full Cursor rule with workflow and hard rules is [agents/cursor-rule.mdc](agents/cursor-rule.mdc).

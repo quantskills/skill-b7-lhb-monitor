@@ -189,3 +189,13 @@ build-b7-lhb-monitor/
 - **项目性质**：**仅供量化研究与教育示例，不构成投资建议，不承诺收益，不暗示策略安全或保证盈利。**
 - **署名/许可**：四类席位逻辑借鉴 `capital_pricing/seat_analysis`（改为离线可复现）；席位本尊映射来自使用方爬取观测数据。许可证 **GPL-3.0-only**（[LICENSE](LICENSE)）。
 - **维护者**：[@ZLHad](https://github.com/ZLHad)。
+
+## 运行时入口（Runtime entrypoints）
+
+本仓库按 QuantSkills 社区规则提供多运行时入口，均以根目录 [SKILL.md](SKILL.md) 为规范声明：
+
+| 运行时 | 入口 |
+|---|---|
+| Claude Code / Codex | 根目录 `SKILL.md`（Codex 界面元数据见 [agents/openai.yaml](agents/openai.yaml)） |
+| Cursor | [.cursor/rules/quantskills-skill.mdc](.cursor/rules/quantskills-skill.mdc)，完整规则见 [agents/cursor-rule.mdc](agents/cursor-rule.mdc) |
+| Hermes / OpenClaw | [agents/portable-loader.md](agents/portable-loader.md)（便携加载提示） |

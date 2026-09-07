@@ -1,6 +1,6 @@
 ---
 name: skill-b7-lhb-monitor
-description: Monitor A-share Dragon-Tiger List activity and seat labels for research. Use when analyzing 龙虎榜 records, institutional participation, or related market signals; this is research-only material, not investment advice.
+description: 龙虎榜监控 + 席位标签库——收盘后抓取 A 股龙虎榜，用席位标签库把营业部匹配成北向/机构/游资/量化/营业部，生成次日关注清单，整理机构合集/营业部合集/个股详情/区间统计并输出交互式 HTML 看板。BUILD 型 skill，可被复盘 agent 调用。
 license: GPL-3.0-only
 metadata:
   organization: QuantSkills
@@ -10,6 +10,7 @@ metadata:
   project_type: skill
   collection: dragon-tiger-monitor
   license: GPL-3.0-only
+  platforms: [claude-code, codex, cursor, hermes, openclaw]
 ---
 
 # skill-b7-lhb-monitor · 龙虎榜监控 + 席位标签库（Dragon-Tiger Monitor）

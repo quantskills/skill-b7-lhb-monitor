@@ -53,3 +53,13 @@ Community member [@ZLHad](https://github.com/ZLHad). Issues / PRs welcome.
 - Seat-alias mappings come from the maintainer's crawled/curated observational data (under
   `开发产物/references/seat_data/`), which are **not official brokerage identities** and are for research only.
 - Third-party deps: `panda_data`, `pandas`, `numpy`, `pyarrow`, each under their own licenses.
+
+## Runtime entrypoints
+
+Per the QuantSkills community rules this repository ships entrypoints for multiple agent runtimes; the root [SKILL.md](SKILL.md) is the canonical declaration:
+
+| Runtime | Entrypoint |
+|---|---|
+| Claude Code / Codex | root `SKILL.md` (Codex interface metadata in [agents/openai.yaml](agents/openai.yaml)) |
+| Cursor | [.cursor/rules/quantskills-skill.mdc](.cursor/rules/quantskills-skill.mdc); full rule in [agents/cursor-rule.mdc](agents/cursor-rule.mdc) |
+| Hermes / OpenClaw | [agents/portable-loader.md](agents/portable-loader.md) (portable loader prompt) |
