@@ -21,8 +21,8 @@ readme:
   zh: README.md
   en: README.en.md
 
-data_source: PandaData (panda_data>=0.0.9)
-dependencies: [panda_data>=0.0.9, pandas, numpy, pyarrow]
+data_source: PandaData (panda_data==1.0.6)
+dependencies: [panda_data==1.0.6, pandas, numpy, pyarrow]
 
 entrypoints:
   cli: python 开发产物/scripts/build.py --mode daily
