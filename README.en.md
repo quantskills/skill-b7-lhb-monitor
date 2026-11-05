@@ -63,3 +63,6 @@ Per the QuantSkills community rules this repository ships entrypoints for multip
 | Claude Code / Codex | root `SKILL.md` (Codex interface metadata in [agents/openai.yaml](agents/openai.yaml)) |
 | Cursor | [.cursor/rules/quantskills-skill.mdc](.cursor/rules/quantskills-skill.mdc); full rule in [agents/cursor-rule.mdc](agents/cursor-rule.mdc) |
 | Hermes / OpenClaw | [agents/portable-loader.md](agents/portable-loader.md) (portable loader prompt) |
+
+
+Pandadata compatibility maintenance: [abgyjaguo](https://github.com/abgyjaguo). Existing authorship is retained.

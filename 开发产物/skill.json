@@ -20,9 +20,9 @@
     "render_html": "scripts/render_html.py:render_html",
     "render_range_html": "scripts/render_html.py:render_range_html"
   },
-  "data_source": "PandaData (panda_data>=0.0.9): get_lhb_list + get_lhb_detail + get_stock_detail",
+  "data_source": "PandaData (panda_data==1.0.6): get_lhb_list + get_lhb_detail + get_stock_detail",
   "production": "build-b7-lhb-monitor/生产产物/database.parquet",
   "seat_library_override_env": "B7_SEAT_OVERRIDE",
   "callable_by_alpha": true,
-  "dependencies": ["panda_data>=0.0.9", "pandas", "numpy", "pyarrow"]
+  "dependencies": ["panda_data==1.0.6", "pandas", "numpy", "pyarrow"]
 }

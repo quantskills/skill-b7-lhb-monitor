@@ -199,3 +199,6 @@ build-b7-lhb-monitor/
 | Claude Code / Codex | 根目录 `SKILL.md`（Codex 界面元数据见 [agents/openai.yaml](agents/openai.yaml)） |
 | Cursor | [.cursor/rules/quantskills-skill.mdc](.cursor/rules/quantskills-skill.mdc)，完整规则见 [agents/cursor-rule.mdc](agents/cursor-rule.mdc) |
 | Hermes / OpenClaw | [agents/portable-loader.md](agents/portable-loader.md)（便携加载提示） |
+
+
+Pandadata 兼容维护：[abgyjaguo](https://github.com/abgyjaguo)，保留原项目作者署名。
